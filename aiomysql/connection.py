@@ -33,10 +33,10 @@ class MysqlConnection:
                       autocommit=False, isolation=None):
         """connect and authenticate to mysql"""
         self.reader, self.writer = await asyncio.open_connection(host, port)
-        self.handshake = await self.next_packet(packet.Handshake)
-        self.send(packet.handshake_response(self.handshake, user, password,
-                                            database))
-        response = await self.next_packet()
+        self.handshake = await self._next_packet(packet.Handshake)
+        self._send(packet.handshake_response(self.handshake, user, password,
+                                             database))
+        response = await self._next_packet()
         if isinstance(response, packet.ERR):
             raise AuthenticationError(response.error_message)
 
@@ -49,15 +49,15 @@ class MysqlConnection:
 
         return self
 
-    def serialize(self, value):
+    @classmethod
+    def serialize(cls, value):
         """escape and serialize a value"""
         return serializer.to_mysql(value)
 
-    async def execute(self,  # pylint: disable=unused-argument
-                      query, **kwargs):
+    async def execute(self, query):
         """execute query, return [column names], [[row], ...]"""
-        self.execute_command(COMMAND.COM_QUERY, query)
-        response = await self.next_packet(packet.query_response)
+        self._execute_command(COMMAND.COM_QUERY, query)
+        response = await self._next_packet(packet.query_response)
         if isinstance(response, packet.ERR):
             raise CommandException(response.error_message)
 
@@ -70,14 +70,14 @@ class MysqlConnection:
         # --- column definitions
         defns = []
         for _ in range(response.field_length):
-            defn = await self.next_column_definition()
+            defn = await self._next_column_definition()
             defns.append(defn)
-        _ = await self.next_packet()  # extra packet after defns
+        _ = await self._next_packet()  # extra packet after defns
 
         # --- rows
         rows = []
         while True:
-            pkt = await self.next_packet(packet.row_data)
+            pkt = await self._next_packet(packet.row_data)
             if isinstance(pkt, (packet.OK, packet.EOF)):
                 break
             row = []
@@ -90,25 +90,8 @@ class MysqlConnection:
 
         return defns, rows
 
-    def execute_command(self, command_type, sql):
-        """send off sql command"""
-        sql = sql.encode(self.encoding)
-        sql = struct.pack('B', command_type) + sql
-        self.sequence = 0
-        while sql:
-            packet_size = min(packet.MAX_PACKET_LEN, len(sql))
-            self.send(sql[:packet_size])
-            sql = sql[packet_size:]
-
-    def send(self, payload):
-        """send payload to mysql"""
-        self.writer.write(packet.serialize(payload, self.sequence))
-        self.sequence += 1
-
     def last_id(self):
         """return last autoincrement id"""
-        return self._last_id
-
         return self._last_id
 
     def last_message(self):
@@ -116,10 +99,26 @@ class MysqlConnection:
         return self._last_message
 
     async def close(self):
+        """close the connection"""
         self.writer.close()
         await self.writer.wait_closed()
 
-    async def next_packet(self, packet_type=packet.generic):
+    def _execute_command(self, command_type, sql):
+        """send off sql command"""
+        sql = sql.encode(self.encoding)
+        sql = struct.pack('B', command_type) + sql
+        self.sequence = 0
+        while sql:
+            packet_size = min(packet.MAX_PACKET_LEN, len(sql))
+            self._send(sql[:packet_size])
+            sql = sql[packet_size:]
+
+    def _send(self, payload):
+        """send payload to mysql"""
+        self.writer.write(packet.serialize(payload, self.sequence))
+        self.sequence += 1
+
+    async def _next_packet(self, packet_type=packet.generic):
         """read next packet from mysql"""
         header = await self.reader.read(4)
         low, high, packet_number = struct.unpack('<HBB', header)
@@ -131,9 +130,9 @@ class MysqlConnection:
         data = await self.reader.read(length)
         return packet_type(data)
 
-    async def next_column_definition(self):
-        """read and set up next column definition"""
-        defn = await self.next_packet(packet.ColumnDefinition)
+    async def _next_column_definition(self):
+        """read and set up next column definition packet"""
+        defn = await self._next_packet(packet.ColumnDefinition)
 
         if defn.type == FIELD_TYPE.JSON:
             encoding = self.encoding
