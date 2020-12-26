@@ -156,7 +156,6 @@ def to_mysql(val):
         datetime.datetime: from_datetime,
         datetime.timedelta: from_timedelta,
         datetime.time: from_time,
-        # time.struct_time: escape_struct_time,
         decimal.Decimal: quote,
         set: from_set,
         Bit: from_bit

@@ -15,7 +15,7 @@ def select(host, user, password, database, query):
     """simple query runner"""
 
     async def _select():
-        con = await MysqlConnection().connect(host, user, password, database)
+        con = await MysqlConnection.connect(host, user, password, database)
         cols, rows = await con.execute(query)
         for row in rows:
             print(dict(zip(cols, row)))

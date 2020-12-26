@@ -28,26 +28,28 @@ class MysqlConnection:
         self._last_id = None
         self._last_message = None
 
-    async def connect(self,  # pylint: disable=too-many-arguments
+    @classmethod
+    async def connect(cls,  # pylint: disable=too-many-arguments
                       host, user, password="", database="", port=3306,
                       autocommit=False, isolation=None):
         """connect and authenticate to mysql"""
-        self.reader, self.writer = await asyncio.open_connection(host, port)
-        self.handshake = await self._next_packet(packet.Handshake)
-        self._send(packet.handshake_response(self.handshake, user, password,
-                                             database))
-        response = await self._next_packet()
+        con = cls()
+        con.reader, con.writer = await asyncio.open_connection(host, port)
+        con.handshake = await con._next_packet(packet.Handshake)
+        con._send(packet.handshake_response(con.handshake, user, password,
+                                            database))
+        response = await con._next_packet()
         if isinstance(response, packet.ERR):
             raise AuthenticationError(response.error_message)
 
-        if autocommit is not self.handshake.autocommit:
-            await self.execute(f"SET AUTOCOMMIT = {1 if autocommit else 0}")
+        if autocommit is not con.handshake.autocommit:
+            await con.execute(f"SET AUTOCOMMIT = {1 if autocommit else 0}")
 
         if isolation is not None:
-            await self.execute(
+            await con.execute(
                 f"SET SESSION TRANSACTION ISOLATION LEVEL {isolation}")
 
-        return self
+        return con
 
     @classmethod
     def serialize(cls, value):
