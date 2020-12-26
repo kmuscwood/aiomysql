@@ -88,7 +88,7 @@ class MysqlConnection:
                 row.append(value)
             rows.append(row)
 
-        return defns, rows
+        return [defn.name.decode() for defn in defns], rows
 
     def last_id(self):
         """return last autoincrement id"""
