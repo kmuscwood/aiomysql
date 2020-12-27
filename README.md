@@ -25,8 +25,8 @@ The connection remains open until the `close` method is called, or until it is c
 * user - name of the database user
 * password - user's password
 * database - database name
-* port - IP port
-* autocommit - autocommit state of the connection; set at connect
+* port - IP port of the `mysql` host
+* autocommit - autocommit state of the connection; verified or set at connect
 * isolation - isolation level; set at connect
 
 **raises** `aiomysql.connection.AuthenticationError` if unable to authenticate
@@ -94,6 +94,6 @@ decimal.Decimal
 set
 ```
 
-As well, `None` is serialized as `"NULL"`, and
+In addition, `None` is serialized as `NULL`, and
 special handling for `BIT` columns are supported with
 `aiomysql.bit.Bit`.

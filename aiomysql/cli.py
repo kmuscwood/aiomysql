@@ -24,4 +24,4 @@ def select(host, user, password, database, query):
 
 
 if __name__ == "__main__":
-    asyncio.run(select())
+    select()
