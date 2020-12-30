@@ -51,6 +51,14 @@ class MysqlConnection:
 
         return con
 
+    async def ping(self):
+        """perform connection liveness check"""
+        try:
+            await self.execute("SELECT 1")
+        except asyncio.IncompleteReadError:
+            return False
+        return True
+
     @classmethod
     def serialize(cls, value):
         """escape and serialize a value"""
@@ -122,14 +130,14 @@ class MysqlConnection:
 
     async def _next_packet(self, packet_type=packet.generic):
         """read next packet from mysql"""
-        header = await self.reader.read(4)
+        header = await self.reader.readexactly(4)
         low, high, packet_number = struct.unpack('<HBB', header)
         if packet_number != self.sequence:
             raise Exception(
                 f"Packet sequence {packet_number} != {self.sequence}")
         self.sequence += 1
         length = low + (high << 16)
-        data = await self.reader.read(length)
+        data = await self.reader.readexactly(length)
         return packet_type(data)
 
     async def _next_column_definition(self):
