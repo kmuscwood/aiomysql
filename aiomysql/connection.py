@@ -64,6 +64,10 @@ class MysqlConnection:
         """escape and serialize a value"""
         return serializer.to_mysql(value)
 
+    async def execute_ignore_kwargs(self, query, **kwargs):
+        """ignore any kwargs (useful for aiodb Cursor setup)"""
+        return await self.execute(query)
+
     async def execute(self, query):
         """execute query, return [column names], [[row], ...]"""
         self._execute_command(COMMAND.COM_QUERY, query)
