@@ -32,7 +32,24 @@ class MysqlConnection:
     async def connect(cls,  # pylint: disable=too-many-arguments
                       host, user, password="", database="", port=3306,
                       autocommit=False, isolation=None):
-        """connect and authenticate to mysql"""
+        """connect and authenticate to mysql
+
+           host       - hostname or IP address of mysql server
+           user       - mysql user
+           password   - password for mysql user
+           database   - name of database
+           port       - mysql listening port
+           autocommit - autocommit for connection (else per mysql)
+           isolation  - isolation level for connection (else per mysql)
+                        (eg: "REPEATABLE READ", "READ UNCOMMITED" ...)
+
+           Return:
+               aiomysql.connection.MysqlConnection instance
+
+           Notes:
+               * the connection remains open until closed by the mysql server,
+                 or until the close method is called
+        """
         con = cls()
         con.reader, con.writer = await asyncio.open_connection(host, port)
         con.handshake = await con._next_packet(packet.Handshake)
@@ -52,7 +69,11 @@ class MysqlConnection:
         return con
 
     async def ping(self):
-        """perform connection liveness check"""
+        """perform connection liveness check
+
+           Return:
+               True if still connected, else False
+        """
         try:
             await self.execute("SELECT 1")
         except asyncio.IncompleteReadError:
@@ -69,7 +90,20 @@ class MysqlConnection:
         return await self.execute(query)
 
     async def execute(self, query):
-        """execute query, return [column names], [[row], ...]"""
+        """execute a SQL command and return any result
+
+           query - command to be executed
+
+           Return:
+               [column names], [[row], ...]
+
+           Notes:
+               * for non-SELECT commands the return will be two empty lists
+               * if an INSERT with AUTOINCREMENT occurs, the autoincrement
+                 value is available by calling the last_id method
+               * if the command generates a message, the message is available
+                 by calling the last_message method
+        """
         self._execute_command(COMMAND.COM_QUERY, query)
         response = await self._next_packet(packet.query_response)
         if isinstance(response, packet.ERR):

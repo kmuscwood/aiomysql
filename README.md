@@ -21,13 +21,14 @@ on top of this code.
 The `connect` classmethod returns a `MysqlConnection` instance that is connected to a `mysql` database.
 The connection remains open until the `close` method is called, or until it is closed by the `mysql` server.
 
-* host - name or IP address of the `mysql` host
-* user - name of the database user
-* password - user's password
-* database - database name
-* port - IP port of the `mysql` host
-* autocommit - autocommit state of the connection; verified or set at connect
-* isolation - isolation level; set at connect
+* host       - hostname or IP address of mysql server
+* user       - mysql user
+* password   - password for mysql user
+* database   - name of database
+* port       - mysql listening port
+* autocommit - autocommit for connection (else per mysql)
+* isolation  - isolation level for connection (else per mysql)
+               (eg: "REPEATABLE READ", "READ UNCOMMITED" ...)
 
 **raises** `aiomysql.connection.AuthenticationError` if unable to authenticate
 
