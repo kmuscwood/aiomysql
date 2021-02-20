@@ -27,6 +27,7 @@ class MysqlConnection:
         self.encoding = charset.charset_by_name("utf8").encoding
         self._last_id = None
         self._last_message = None
+        self.quote = "`"
 
     @classmethod
     async def connect(cls,  # pylint: disable=too-many-arguments
@@ -85,14 +86,10 @@ class MysqlConnection:
         """escape and serialize a value"""
         return serializer.to_mysql(value)
 
-    async def execute_ignore_kwargs(self, query, **kwargs):
-        """ignore any kwargs (useful for aiodb Cursor setup)"""
-        return await self.execute(query)
-
     async def execute(self, query):
         """execute a SQL command and return any result
 
-           query - command to be executed
+           query  - command to be executed
 
            Return:
                [column names], [[row], ...]
@@ -104,6 +101,9 @@ class MysqlConnection:
                * if the command generates a message, the message is available
                  by calling the last_message method
         """
+        self._last_id = None
+        self._last_message = None
+
         self._execute_command(COMMAND.COM_QUERY, query)
         response = await self._next_packet(packet.query_response)
         if isinstance(response, packet.ERR):
@@ -136,7 +136,7 @@ class MysqlConnection:
                 row.append(value)
             rows.append(row)
 
-        return [defn.name.decode() for defn in defns], rows
+        return [defn.name for defn in defns], rows
 
     def last_id(self):
         """return last autoincrement id"""
