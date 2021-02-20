@@ -349,7 +349,7 @@ class ColumnDefinition(Packet):  # pylint: disable=too-many-instance-attributes
         self.schema = self.read_length_coded_string()
         self.table = self.read_length_coded_string()
         self.org_table = self.read_length_coded_string()
-        self.name = self.read_length_coded_string()
+        self.name = self.read_length_coded_string().decode()
         self.org_name = self.read_length_coded_string()
 
         header = struct.Struct('<xHIBHBxx')
