@@ -3,7 +3,7 @@ from distutils.core import setup
 
 setup(
     name='aiomysql',
-    version='1.0.0',
+    version='1.0.1',
     packages=find_packages(exclude=['tests']),
     description='asyncio mysql tools',
     long_description="""

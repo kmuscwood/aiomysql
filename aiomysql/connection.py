@@ -148,6 +148,8 @@ class MysqlConnection:
 
     async def close(self):
         """close the connection"""
+        close_packet = struct.pack('B', COMMAND.COM_STMT_CLOSE)
+        self._send(close_packet)
         self.writer.close()
         await self.writer.wait_closed()
 
